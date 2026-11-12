@@ -1,2 +1,33 @@
 SheepShaverGUI ICON PRELOAD "SheepShaverGUI.ico"
 
+#include <winver.h>
+
+1 VERSIONINFO
+FILEVERSION 2,5,0,0
+PRODUCTVERSION 2,5,0,0
+FILEFLAGSMASK VS_FFI_FILEFLAGSMASK
+FILEFLAGS 0x0L
+FILEOS VOS__WINDOWS32
+FILETYPE VFT_APP
+FILESUBTYPE VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"
+        BEGIN
+            VALUE "CompanyName", "Christian Bauer, Marc Hellwig et al."
+            VALUE "FileDescription", "SheepShaver Preferences Editor"
+            VALUE "FileVersion", "2.5.0.0"
+            VALUE "InternalName", "SheepShaverGUI"
+            VALUE "LegalCopyright", "Copyright (C) 1997-2026 Christian Bauer, Marc Hellwig et al."
+            VALUE "OriginalFilename", "SheepShaverGUI.exe"
+            VALUE "ProductName", "SheepShaver"
+            VALUE "ProductVersion", "2.5 (" __DATE__ ")"
+            VALUE "Comments", "Built on " __DATE__
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0409, 1200
+    END
+END
