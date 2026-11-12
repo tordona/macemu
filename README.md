@@ -3,12 +3,14 @@
 macOS     x86_64 JIT / arm64 non-JIT
 Linux x86 x86_64 JIT / arm64 non-JIT
 MinGW x86        JIT
+Windows   arm64 non-JIT (CLANGARM64)
 ```
 #### SheepShaver
 ```
 macOS     x86_64 JIT / arm64 non-JIT
 Linux x86 x86_64 JIT / arm64 non-JIT
 MinGW x86        JIT
+Windows   arm64 non-JIT (CLANGARM64)
 ```
 ### How To Build
 These builds need to be installed SDL2.0.14+ framework/library.
@@ -75,6 +77,19 @@ $ cd macemu/BasiliskII/src/Windows
 $ ../Unix/autogen.sh
 $ make
 ```
+
+##### Windows ARM64 / MSYS2 CLANGARM64
+preparation (from an MSYS2 `clangarm64.exe` prompt):
+```
+$ pacman -S --needed gcc git make base-devel autoconf automake perl mingw-w64-clang-aarch64-{toolchain,gcc-compat,gtk2,SDL2}
+```
+
+build (from a clangarm64.exe prompt):
+```
+$ cd macemu/BasiliskII/src/Windows
+$ ../Unix/autogen.sh
+$ make
+```
 #### SheepShaver
 ##### macOS
 about changing Deployment Target: see BasiliskII
@@ -96,6 +111,18 @@ https://github.com/vaccinemedia/macemu
 preparation: same as BasiliskII  
   
 build (from a mingw32.exe prompt):
+```
+$ cd macemu/SheepShaver
+$ make links
+$ cd src/Windows
+$ ../Unix/autogen.sh
+$ make
+```
+
+##### Windows ARM64 / MSYS2 CLANGARM64
+preparation: same as BasiliskII
+
+build (from a clangarm64.exe prompt):
 ```
 $ cd macemu/SheepShaver
 $ make links
