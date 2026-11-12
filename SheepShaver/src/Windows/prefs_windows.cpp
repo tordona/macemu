@@ -59,6 +59,7 @@ prefs_desc platform_prefs_items[] = {
 	{"sdl_vsync", TYPE_BOOLEAN, false,     "Make SDL_Renderer vertical sync frames to host (eg. with software renderer)"},
 #endif
 	{"reservewindowskey", TYPE_BOOLEAN, false,      "block Windows key from activating start menu"},
+	{"allowmultiple", TYPE_BOOLEAN, false,          "allow multiple instances to run with the same configuration"},
 
 	{NULL, TYPE_END, false, NULL} // End of list
 };
@@ -68,6 +69,11 @@ prefs_desc platform_prefs_items[] = {
 const char PREFS_FILE_NAME[] = "SheepShaver_prefs";
 string UserPrefsPath;
 static string prefs_path;
+
+const char *GetPrefsPath(void)
+{
+	return prefs_path.c_str();
+}
 
 
 /*

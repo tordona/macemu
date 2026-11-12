@@ -159,10 +159,70 @@ static inline int vm_mac_release(uint32 addr, uint32 size)
  *  Main program
  */
 
+// Single instance check
+static HANDLE hSingleInstanceMutex = NULL;
+
+static BOOL CALLBACK EnumWindowsFindInstance(HWND hWnd, LPARAM lParam)
+{
+	char title[256];
+	if (GetWindowTextA(hWnd, title, sizeof(title)) > 0) {
+		const char *prefix = (const char *)lParam;
+		if (strncmp(title, prefix, strlen(prefix)) == 0) {
+			ShowWindow(hWnd, SW_RESTORE);
+			SetForegroundWindow(hWnd);
+			return FALSE;
+		}
+	}
+	return TRUE;
+}
+
+static bool CheckSingleInstance(const char *prefs_file, bool allow_multiple, const char *app_name)
+{
+	if (allow_multiple)
+		return true;
+
+	if (!prefs_file || !prefs_file[0])
+		return true;
+
+	char full_path[MAX_PATH];
+	if (GetFullPathNameA(prefs_file, MAX_PATH, full_path, NULL) == 0) {
+		strncpy(full_path, prefs_file, sizeof(full_path) - 1);
+		full_path[sizeof(full_path) - 1] = 0;
+	}
+
+	// Normalize to lowercase for case-insensitive file system matching
+	for (char *p = full_path; *p; ++p)
+		*p = (char)tolower((unsigned char)*p);
+
+	// 64-bit FNV-1a hash
+	uint64 hash = 14695981039346656037ULL;
+	for (const char *p = full_path; *p; ++p) {
+		hash ^= (uint64)(unsigned char)(*p);
+		hash *= 1099511628211ULL;
+	}
+
+	char mutex_name[128];
+	snprintf(mutex_name, sizeof(mutex_name), "Local\\%s_Instance_%016llx", app_name, (unsigned long long)hash);
+
+	hSingleInstanceMutex = CreateMutexA(NULL, TRUE, mutex_name);
+	if (hSingleInstanceMutex != NULL && GetLastError() == ERROR_ALREADY_EXISTS) {
+		// Existing instance found: try bringing its window to foreground
+		EnumWindows(EnumWindowsFindInstance, (LPARAM)app_name);
+
+		CloseHandle(hSingleInstanceMutex);
+		hSingleInstanceMutex = NULL;
+		return false;
+	}
+
+	return true;
+}
+
 static void usage(const char *prg_name)
 {
 	printf("Usage: %s [OPTION...]\n", prg_name);
 	printf("\nUnix options:\n");
+	printf("  --config FILE\n    read/write configuration from/to FILE\n");
+	printf("  --allow-multiple\n    allow running multiple instances with the same configuration\n");
 	printf("  --display STRING\n    X display to use\n");
 	PrefsPrintUsage();
 	printf("\nBuild Date: %s\n", __DATE__);
@@ -178,6 +238,8 @@ int main(int argc, char **argv)
 	uint32 rom_size;
 	DWORD actual;
 	uint8 *rom_tmp;
+
+	bool opt_allow_multiple = false;
 
 	// Initialize variables
 	RAMBase = 0;
@@ -199,6 +261,9 @@ int main(int argc, char **argv)
 				UserPrefsPath = to_tstring(argv[i]);
 				argv[i] = NULL;
 			}
+		} else if (strcmp(argv[i], "--allow-multiple") == 0) {
+			argv[i] = NULL;
+			opt_allow_multiple = true;
 		}
 	}
 
@@ -218,6 +283,13 @@ int main(int argc, char **argv)
 
 	// Read preferences
 	PrefsInit(NULL, argc, argv);
+
+	// Check for single instance
+	extern const char *GetPrefsPath(void);
+	bool allow_multiple = opt_allow_multiple || PrefsFindBool("allowmultiple");
+	if (!CheckSingleInstance(GetPrefsPath(), allow_multiple, "SheepShaver")) {
+		return 1;
+	}
 
 	for (int i=1; i<argc; i++) {
 		if (argv[i][0] == '-') {
@@ -457,6 +529,12 @@ quit:
 
 static void Quit(void)
 {
+	// Release single instance mutex
+	if (hSingleInstanceMutex != NULL) {
+		CloseHandle(hSingleInstanceMutex);
+		hSingleInstanceMutex = NULL;
+	}
+
 	// Exit PowerPC emulation
 	exit_emul_ppc();
 
