@@ -205,10 +205,10 @@ int CdenableSysReadCdBytes( HANDLE h, DWORD start, DWORD count, char *buf )
 
   ret = 0;
 
-	in_buffer[0] = (DWORD)h;
+	in_buffer[0] = (DWORD)(uintptr_t)h;
 	in_buffer[1] = (DWORD)start;
 	in_buffer[2] = (DWORD)count;
-	in_buffer[3] = (DWORD)buf;
+	in_buffer[3] = (DWORD)(uintptr_t)buf;
 	out_buffer[0] = 0;
 
   hDevice = CreateFile (sCompleteName,
@@ -255,10 +255,10 @@ int CdenableSysWriteCdBytes( HANDLE h, DWORD start, DWORD count, char *buf )
 
   ret = 0;
 
-	in_buffer[0] = (DWORD)h;
+	in_buffer[0] = (DWORD)(uintptr_t)h;
 	in_buffer[1] = (DWORD)start;
 	in_buffer[2] = (DWORD)count;
-	in_buffer[3] = (DWORD)buf;
+	in_buffer[3] = (DWORD)(uintptr_t)buf;
 	out_buffer[0] = 0;
 
   hDevice = CreateFile (sCompleteName,

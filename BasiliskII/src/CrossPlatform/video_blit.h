@@ -102,7 +102,7 @@ static void FB_FUNC_NAME(uint8 * dest, const uint8 * source, uint32 length)
 #ifndef UNALIGNED_PROFITABLE
 #if FB_DEPTH <= 8
 	// Align source and dest to 16-bit word boundaries
-	if (((unsigned long) source) & 1) {
+	if (((uintptr) source) & 1) {
 		*dest++ = *source++;
 		length -= 1;
 	}
@@ -110,7 +110,7 @@ static void FB_FUNC_NAME(uint8 * dest, const uint8 * source, uint32 length)
 	
 #if FB_DEPTH <= 16
 	// Align source and dest to 32-bit word boundaries
-	if (((unsigned long) source) & 2) {
+	if (((uintptr) source) & 2) {
 		FB_BLIT_1(DEREF_WORD_PTR(dest, 0), DEREF_WORD_PTR(source, 0));
 		dest += 2; source += 2;
 		length -= 2;
