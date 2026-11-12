@@ -140,6 +140,8 @@ typedef char * caddr_t;
 #define __i386__
 #elif defined _M_AMD64
 #define __x86_64__
+#elif defined _M_ARM64
+#define __aarch64__
 #endif
 #endif
 
@@ -175,6 +177,7 @@ extern void Delay_usec(uint32 usec);
 #define HAVE_TEST_AND_SET 1
 static inline int testandset(volatile int *p)
 {
+#if defined(__i386__) || defined(__x86_64__)
 	long int ret;
 	/* Note: the "xchg" instruction does not need a "lock" prefix */
 	__asm__ __volatile__("xchgl %k0, %1"
@@ -182,6 +185,9 @@ static inline int testandset(volatile int *p)
 						 : "0" (1), "m" (*p)
 						 : "memory");
 	return ret;
+#else
+	return __atomic_exchange_n(p, 1, __ATOMIC_ACQ_REL);
+#endif
 }
 #endif /* __GNUC__ */
 
@@ -230,7 +236,14 @@ static inline void do_put_mem_long(uae_u32 *a, uae_u32 v) {*a = _byteswap_ulong(
 static inline void do_put_mem_word(uae_u16 *a, uae_u32 v) {*a = _byteswap_ushort(v);}
 static inline uae_u32 do_byteswap_32_g(uae_u32 v) {return _byteswap_ulong(v);}
 static inline uae_u32 do_byteswap_16_g(uae_u32 v) {return _byteswap_ushort(v);}
-#else
+#elif defined(__aarch64__) || defined(_M_ARM64)
+static inline uae_u32 do_get_mem_long(uae_u32 *a) {return __builtin_bswap32(*a);}
+static inline uae_u32 do_get_mem_word(uae_u16 *a) {return __builtin_bswap16(*a);}
+static inline void do_put_mem_long(uae_u32 *a, uae_u32 v) {*a = __builtin_bswap32(v);}
+static inline void do_put_mem_word(uae_u16 *a, uae_u32 v) {*a = __builtin_bswap16(v);}
+static inline uae_u32 do_byteswap_32_g(uae_u32 v) {return __builtin_bswap32(v);}
+static inline uae_u32 do_byteswap_16_g(uae_u32 v) {return __builtin_bswap16(v);}
+#elif defined(__i386__) || defined(__x86_64__)
 /* Intel x86 */
 static inline uae_u32 do_get_mem_long(uae_u32 *a) {uint32 retval; __asm__ ("bswap %0" : "=r" (retval) : "0" (*a) : "cc"); return retval;}
 static inline uae_u32 do_get_mem_word(uae_u16 *a) {uint32 retval; __asm__ ("movzwl %w1,%k0\n\tshll $16,%k0\n\tbswapl %k0\n" : "=&r" (retval) : "m" (*a) : "cc"); return retval;}
@@ -239,6 +252,13 @@ static inline void do_put_mem_word(uae_u16 *a, uae_u32 v) {__asm__ ("bswapl %0" 
 /* bswap doesn't affect condition codes */
 static inline uae_u32 do_byteswap_32_g(uae_u32 v) {__asm__ ("bswap %0" : "=r" (v) : "0" (v)); return v;}
 static inline uae_u32 do_byteswap_16_g(uae_u32 v) {__asm__ ("bswapl %0" : "=&r" (v) : "0" (v << 16) : "cc"); return v;}
+#else
+static inline uae_u32 do_get_mem_long(uae_u32 *a) {return __builtin_bswap32(*a);}
+static inline uae_u32 do_get_mem_word(uae_u16 *a) {return __builtin_bswap16(*a);}
+static inline void do_put_mem_long(uae_u32 *a, uae_u32 v) {*a = __builtin_bswap32(v);}
+static inline void do_put_mem_word(uae_u16 *a, uae_u32 v) {*a = __builtin_bswap16(v);}
+static inline uae_u32 do_byteswap_32_g(uae_u32 v) {return __builtin_bswap32(v);}
+static inline uae_u32 do_byteswap_16_g(uae_u32 v) {return __builtin_bswap16(v);}
 #endif
 
 #define HAVE_GET_WORD_UNSWAPPED
@@ -261,10 +281,13 @@ static inline uae_u32 do_byteswap_16_g(uae_u32 v)
      ((((x) & 0xff000000) >> 24) | (((x) & 0x00ff0000) >>  8) | \
       (((x) & 0x0000ff00) <<  8) | (((x) & 0x000000ff) << 24))
 
-#if defined(__GNUC__)
+#if defined(__aarch64__) || defined(_M_ARM64)
+#define do_byteswap_16(x) __builtin_bswap16(x)
+#define do_byteswap_32(x) __builtin_bswap32(x)
+#elif defined(__GNUC__)
 #define do_byteswap_16(x)						\
 		(__extension__							\
-		 ({ register uint16 __v, __x = (x);		\
+		 ({ uint16 __v, __x = (x);				\
 		 if (__builtin_constant_p(__x))			\
 		   __v = do_byteswap_16_c(__x);			\
 		 else									\
@@ -273,7 +296,7 @@ static inline uae_u32 do_byteswap_16_g(uae_u32 v)
 
 #define do_byteswap_32(x)						\
 		(__extension__							\
-		 ({ register uint32 __v, __x = (x);		\
+		 ({ uint32 __v, __x = (x);				\
 		 if (__builtin_constant_p(__x))			\
 		   __v = do_byteswap_32_c(__x);			\
 		 else									\
@@ -285,7 +308,11 @@ static inline uae_u32 do_byteswap_16_g(uae_u32 v)
 #endif
 
 /* Byte-swapping routines */
-#if defined(__i386__) || defined(__x86_64__)
+#if defined(__i386__) || defined(__x86_64__) || defined(__aarch64__) || defined(_M_ARM64)
+#undef ntohl
+#undef ntohs
+#undef htonl
+#undef htons
 #define ntohl(x) do_byteswap_32(x)
 #define ntohs(x) do_byteswap_16(x)
 #define htonl(x) do_byteswap_32(x)

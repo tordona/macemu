@@ -130,7 +130,7 @@ typedef int64 intptr;
 #endif
 
 // Define if the host processor supports fast unaligned load/stores
-#if defined __i386__ || defined __x86_64__
+#if defined __i386__ || defined __x86_64__ || defined __aarch64__
 #define UNALIGNED_PROFITABLE 1
 #endif
 
@@ -162,6 +162,10 @@ static inline uint16 do_opt_bswap_16(uint16 x)
 
 #endif
 
+#elif defined(__aarch64__)
+#define opt_bswap_16 __builtin_bswap16
+#define opt_bswap_32 __builtin_bswap32
+#define opt_bswap_64 __builtin_bswap64
 #endif
 #endif
 
@@ -276,7 +280,7 @@ inline uint16 sysdeps_inline_bswap_16(uint16 x)
 #define do_byteswap_32(x) (do_byteswap_32_g(x))
 #endif
 
-#if defined(__i386__) || defined(__x86_64__)
+#if defined(__i386__) || defined(__x86_64__) || defined(__aarch64__)
 #define ntohl(x) do_byteswap_32(x)
 #define ntohs(x) do_byteswap_16(x)
 #define htonl(x) do_byteswap_32(x)
@@ -319,6 +323,12 @@ static inline int testandset(volatile int *p)
 						 : "0" (1), "m" (*p)
 						 : "memory");
 	return ret;
+}
+#elif defined(__aarch64__)
+#define HAVE_TEST_AND_SET 1
+static inline int testandset(volatile int *p)
+{
+	return __atomic_exchange_n(p, 1, __ATOMIC_SEQ_CST);
 }
 #endif
 

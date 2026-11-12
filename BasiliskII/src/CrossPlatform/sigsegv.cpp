@@ -612,6 +612,11 @@ static sigsegv_address_t get_fault_address(struct sigcontext *scp)
 #define SIGSEGV_REGISTER_FILE			((SIGSEGV_REGISTER_TYPE *)&SIGSEGV_CONTEXT_REGS->Rax)
 #define SIGSEGV_SKIP_INSTRUCTION		ix86_skip_instruction
 #endif
+#if defined(_M_ARM64) || defined(__aarch64__)
+#define SIGSEGV_FAULT_INSTRUCTION		SIGSEGV_CONTEXT_REGS->Pc
+#define SIGSEGV_REGISTER_FILE			((unsigned long *)SIGSEGV_CONTEXT_REGS)
+#define SIGSEGV_SKIP_INSTRUCTION		aarch64_skip_instruction
+#endif
 #if defined(_M_IA64)
 #define SIGSEGV_FAULT_INSTRUCTION		SIGSEGV_CONTEXT_REGS->StIIP
 #endif
@@ -2573,6 +2578,21 @@ static bool aarch64_skip_instruction(unsigned long *regs) {
 	unsigned long long *r = (unsigned long long *)regs;
 	if (!r[32]) return false;
 	r[32] += 4;
+	return true;
+}
+#endif
+#if defined(_WIN32) && (defined(_M_ARM64) || defined(__aarch64__))
+static bool aarch64_skip_instruction(unsigned long *regs) {
+	CONTEXT *ctx = (CONTEXT *)regs;
+	if (!ctx->Pc) return false;
+	uint32_t insn = *(uint32_t *)ctx->Pc;
+	unsigned int rt = insn & 0x1f;
+	if (((insn >> 25) & 0x7) == 0x4 && ((insn >> 22) & 0x1) == 0x1) {
+		if (rt < 31) {
+			((DWORD64 *)&ctx->X0)[rt] = 0;
+		}
+	}
+	ctx->Pc += 4;
 	return true;
 }
 #endif
