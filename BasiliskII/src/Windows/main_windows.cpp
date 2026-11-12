@@ -368,7 +368,7 @@ int main(int argc, char **argv)
 
 #if USE_SCRATCHMEM_SUBTERFUGE
 	// Allocate scratch memory
-	ScratchMem = (uint8 *)vm_acquire(SCRATCH_MEM_SIZE);
+	ScratchMem = (uint8 *)vm_acquire_mac(SCRATCH_MEM_SIZE);
 	if (ScratchMem == VM_MAP_FAILED) {
 		ErrorAlert(STR_NO_MEM_ERR);
 		QuitEmulator();

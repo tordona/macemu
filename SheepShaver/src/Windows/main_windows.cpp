@@ -371,7 +371,7 @@ int main(int argc, char **argv)
 		goto quit;
 	}
 	dr_cache_area_mapped = true;
-	DRCacheAddr = (uint32)Mac2HostAddr(DR_CACHE_BASE);
+	DRCacheAddr = DR_CACHE_BASE;
 	D(bug("DR Cache at %p (%08x)\n", DRCacheAddr, DR_CACHE_BASE));
 #endif
 	// Create area for SheepShaver data

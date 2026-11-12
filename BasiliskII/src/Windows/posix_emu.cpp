@@ -30,6 +30,7 @@
 #include "main.h"
 #include "extfs_defs.h"
 #include "prefs.h"
+#include "vm_alloc.h"
 #include <ctype.h>
 
 
@@ -399,20 +400,24 @@ void init_posix_emu(void)
 				my_write( fd, my_comp_icon, sizeof(my_comp_icon) );
 				my_close(fd);
 				// need room for the things from around the finfo that set_finfo reads
-				static uint8 custom_icon_hfile[ioFlXFndrInfo + SIZEOF_FXInfo];
-				memset(custom_icon_hfile, 0, ioFlXFndrInfo + SIZEOF_FXInfo);
-				static uint8 * host_finfo = custom_icon_hfile + ioFlFndrInfo;
-				uint32 finfo = Host2MacAddr(host_finfo);
-				get_finfo(custom_icon_name, finfo, 0, false);
-				WriteMacInt16(finfo + fdFlags, kIsInvisible);
-				if (stat_result == 0) {
-					WriteMacInt32(finfo - ioFlFndrInfo + ioFlCrDat, TimeToMacTime(custom_icon_stat.st_ctime));
-					WriteMacInt32(finfo - ioFlFndrInfo + ioFlMdDat, TimeToMacTime(custom_icon_stat.st_mtime));
+				const size_t hfile_size = ioFlXFndrInfo + SIZEOF_FXInfo;
+				uint8 *custom_icon_hfile = (uint8 *)vm_acquire(hfile_size, VM_MAP_DEFAULT | VM_MAP_32BIT);
+				if (custom_icon_hfile != (uint8 *)VM_MAP_FAILED) {
+					memset(custom_icon_hfile, 0, hfile_size);
+					uint8 * host_finfo = custom_icon_hfile + ioFlFndrInfo;
+					uint32 finfo = Host2MacAddr(host_finfo);
+					get_finfo(custom_icon_name, finfo, 0, false);
+					WriteMacInt16(finfo + fdFlags, kIsInvisible);
+					if (stat_result == 0) {
+						WriteMacInt32(finfo - ioFlFndrInfo + ioFlCrDat, TimeToMacTime(custom_icon_stat.st_ctime));
+						WriteMacInt32(finfo - ioFlFndrInfo + ioFlMdDat, TimeToMacTime(custom_icon_stat.st_mtime));
+					}
+					set_finfo(custom_icon_name, finfo, 0, false);
+					get_finfo(my_computer, finfo, 0, true);
+					WriteMacInt16(finfo + fdFlags, ReadMacInt16(finfo + fdFlags) | kHasCustomIcon);
+					set_finfo(my_computer, finfo, 0, true);
+					vm_release(custom_icon_hfile, hfile_size);
 				}
-				set_finfo(custom_icon_name, finfo, 0, false);
-				get_finfo(my_computer, finfo, 0, true);
-				WriteMacInt16(finfo + fdFlags, ReadMacInt16(finfo + fdFlags) | kHasCustomIcon);
-				set_finfo(my_computer, finfo, 0, true);
 			} else {
 				my_remove(custom_icon_name);
 			}

@@ -553,7 +553,12 @@ void *Sys_open(const char *path_name, bool read_only, bool is_cdrom)
 #endif
 
 			// Detect disk image file layout
-			loff_t size = GetFileSize(h, NULL);
+			LARGE_INTEGER li_size;
+			loff_t size;
+			if (GetFileSizeEx(h, &li_size))
+				size = li_size.QuadPart;
+			else
+				size = GetFileSize(h, NULL);
 			DWORD bytes_read;
 			uint8 data[256];
 			ReadFile(h, data, sizeof(data), &bytes_read, NULL);

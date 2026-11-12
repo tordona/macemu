@@ -252,7 +252,7 @@ static void do_getscrap(void **handle, uint32 type, int32 offset)
 					}
 
 					// Add new data to clipboard
-					static uint8 proc[] = {
+					static const uint8 proc[] = {
 						0x59, 0x8f,					// subq.l	#4,sp
 						0xa9, 0xfc,					// ZeroScrap()
 						0x2f, 0x3c, 0, 0, 0, 0,		// move.l	#length,-(sp)
@@ -262,12 +262,22 @@ static void do_getscrap(void **handle, uint32 type, int32 offset)
 						0x58, 0x8f,					// addq.l	#4,sp
 						uint8(M68K_RTS >> 8), uint8(M68K_RTS)
 					};
-					uint32 proc_area = Host2MacAddr(proc);
-					WriteMacInt32(proc_area +  6, out_length);
-					WriteMacInt32(proc_area + 12, type);
-					WriteMacInt32(proc_area + 18, scrap_area);
-					we_put_this_data = true;
-					Execute68k(proc_area, &r);
+					r.d[0] = sizeof(proc);
+					Execute68kTrap(0xa71e, &r);		// NewPtrSysClear()
+					uint32 proc_area = r.a[0];
+
+					if (proc_area) {
+						Host2Mac_memcpy(proc_area, proc, sizeof(proc));
+						WriteMacInt32(proc_area +  6, out_length);
+						WriteMacInt32(proc_area + 12, type);
+						WriteMacInt32(proc_area + 18, scrap_area);
+						we_put_this_data = true;
+						Execute68k(proc_area, &r);
+
+						// We are done with procedure memory
+						r.a[0] = proc_area;
+						Execute68kTrap(0xa01f, &r);	// DisposePtr
+					}
 
 					// We are done with scratch memory
 					r.a[0] = scrap_area;
