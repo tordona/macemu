@@ -76,7 +76,7 @@ SRCS = ../main.cpp main_windows.cpp ../prefs.cpp ../prefs_items.cpp prefs_window
 
 UI_SRCS = ../prefs.cpp prefs_windows.cpp prefs_editor_gtk.cpp xpram_windows.cpp \
 	../prefs_items.cpp ../user_strings.cpp user_strings_windows.cpp util_windows.cpp \
-	b2ether/Packet32.cpp BasiliskIIGUI.rc
+	b2ether/packet32.cpp BasiliskIIGUI.rc
 
 UI_APP = BasiliskIIGUI.exe
 
@@ -122,7 +122,7 @@ $(APP): $(XPLATSRCS) $(OBJ_DIR) $(OBJS)
 	$(CXX) -o $@ $(LDFLAGS) $(OBJS) $(LIBS) $(SDL_LIBS)
 
 $(UI_APP): $(XPLATSRCS) $(OBJ_DIR) $(UI_OBJS)
-	$(CXX) -o $@ $(LDFLAGS) $(UI_OBJS) $(LIBS) -Wl,-Bdynamic $(GTK_LIBS) -Wl,-Bstatic -mwindows -static-libgcc
+	$(CXX) -o $@ $(LDFLAGS) $(UI_OBJS) $(LIBS) -Wl,-Bdynamic $(GTK_LIBS) -Wl,-Bstatic -mwindows
 
 mostlyclean:
 	rm -f $(APP) $(UI_APP) $(OBJ_DIR)/* core* *.core *~ *.bak
@@ -155,7 +155,7 @@ $(OBJ_DIR)/%.o : %.cpp
 $(OBJ_DIR)/%.o : %.s
 	$(CC) $(CPPFLAGS) $(DEFS) $(CFLAGS) -c $< -o $@
 $(OBJ_DIR)/prefs_editor_gtk.o: prefs_editor_gtk.cpp
-	$(CXX) -O2 -mms-bitfields $(CPPFLAGS) $(DEFS) $(GTK_CFLAGS) -c $< -o $@
+	$(CXX) -O2 -fpermissive $(CPPFLAGS) $(DEFS) $(GTK_CFLAGS) -c $< -o $@
 
 # Windows resources
 $(OBJ_DIR)/%.o: %.rc

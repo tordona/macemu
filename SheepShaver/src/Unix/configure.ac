@@ -1555,7 +1555,7 @@ if [[ "x$HAVE_GCC30" = "xyes" ]]; then
     AC_TRY_COMPILE([],[],[ac_cv_gcc_no_strict_aliasing=yes],[ac_cv_gcc_no_strict_aliasing=no])
   ])
   if [[ "x$ac_cv_gcc_no_strict_aliasing" = "xyes" ]]; then
-    AC_SUBST(SLIRP_CFLAGS, "-fno-strict-aliasing")
+    AC_SUBST(SLIRP_CFLAGS, "-fno-strict-aliasing -std=gnu89")
   fi
   CFLAGS="$SAVED_CFLAGS"
 fi

@@ -50,6 +50,7 @@
 #include <errno.h>
 #include <vector>
 #include <string>
+#include <new>
 
 #ifdef WIN32
 #include <malloc.h> /* alloca() */

@@ -1,11 +1,11 @@
 dnl Process this file with autoconf to produce a configure script.
 dnl Written in 2002 by Christian Bauer et al.
 
-AC_INIT([Basilisk II], 1.0, [Christian.Bauer@uni-mainz.de], BasiliskII)
+AC_INIT([Basilisk II],[1.0],[Christian.Bauer@uni-mainz.de],[BasiliskII])
 AC_CONFIG_SRCDIR(main_windows.cpp)
 AC_CONFIG_AUX_DIR(../Unix)
-AC_PREREQ(2.52)
-AC_CONFIG_HEADER(config.h)
+AC_PREREQ([2.73])
+AC_CONFIG_HEADERS([config.h])
 
 dnl Aliases for PACKAGE and VERSION macros.
 AC_DEFINE_UNQUOTED(PACKAGE, "$PACKAGE_NAME", [Define this program name.])
@@ -101,7 +101,15 @@ AS_IF([test  "x$have_bincue" = "xyes" ], [
 ], [AC_SUBST(USE_BINCUE, no)])
 
 dnl Checks for header files.
-AC_HEADER_STDC
+m4_warn([obsolete],
+[The preprocessor macro 'STDC_HEADERS' is obsolete.
+  Except in unusual embedded environments, you can safely include all
+  C89 headers unconditionally.])dnl
+# Autoupdate added the next two lines to ensure that your configure
+# script's behavior did not change.  They are probably safe to remove.
+AC_CHECK_INCLUDES_DEFAULT
+AC_PROG_EGREP
+
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_BIGENDIAN
@@ -138,29 +146,23 @@ dnl Check that VirtualAlloc(), VirtualProtect() work
 AC_CACHE_CHECK([whether VirtualProtect works],
   ac_cv_VirtualProtect_works, [
   AC_LANG_SAVE
-  AC_LANG_CPLUSPLUS
+  AC_LANG([C++])
   ac_cv_VirtualProtect_works=yes
   dnl First the tests that should segfault
   for test_def in NONE_READ NONE_WRITE READ_WRITE; do
-    AC_TRY_RUN([
+    AC_RUN_IFELSE([AC_LANG_SOURCE([[
       #define HAVE_WIN32_VM 1
       #define CONFIGURE_TEST_VM_MAP
       #define TEST_VM_PROT_$test_def
       #include "../CrossPlatform/vm_alloc.cpp"
-    ], ac_cv_VirtualProtect_works=no, rm -f core,
-    dnl When cross-compiling, assume it works
-    ac_cv_VirtualProtect_works="yes"
-    )
+    ]])],[ac_cv_VirtualProtect_works=no],[rm -f core],[dnl When cross-compiling])
   done
-  AC_TRY_RUN([
+  AC_RUN_IFELSE([AC_LANG_SOURCE([[
     #define HAVE_WIN32_VM 1
     #define CONFIGURE_TEST_VM_MAP
     #define TEST_VM_PROT_RDWR_WRITE
     #include "../CrossPlatform/vm_alloc.cpp"
-  ], , ac_cv_VirtualProtect_works=no,
-  dnl When cross-compiling, assume it works
-  ac_cv_VirtualProtect_works="yes"
-  )
+  ]])],[],[ac_cv_VirtualProtect_works=no],[dnl When cross-compiling])
   AC_LANG_RESTORE
   ]
 )
@@ -174,18 +176,13 @@ dnl Check if Windows exceptions are supported.
 AC_CACHE_CHECK([whether your system supports Windows exceptions],
   ac_cv_have_win32_exceptions, [
   AC_LANG_SAVE
-  AC_LANG_CPLUSPLUS
-  AC_TRY_RUN([
+  AC_LANG([C++])
+  AC_RUN_IFELSE([AC_LANG_SOURCE([[
     #define HAVE_WIN32_EXCEPTIONS 1
     #define CONFIGURE_TEST_SIGSEGV_RECOVERY
     #include "../CrossPlatform/vm_alloc.cpp"
     #include "../CrossPlatform/sigsegv.cpp"
-  ],
-  ac_cv_have_win32_exceptions=yes,
-  ac_cv_have_win32_exceptions=no,
-  dnl When cross-compiling, assume it works
-  ac_cv_have_win32_exceptions="yes"
-  )
+  ]])],[ac_cv_have_win32_exceptions=yes],[ac_cv_have_win32_exceptions=no],[dnl When cross-compiling])
   AC_LANG_RESTORE
   ]
 )
@@ -199,19 +196,22 @@ dnl Check if we can ignore the fault (instruction skipping in SIGSEGV handler)
 AC_CACHE_CHECK([whether we can skip instruction in SIGSEGV handler],
   ac_cv_have_skip_instruction, [
   AC_LANG_SAVE
-  AC_LANG_CPLUSPLUS
-  AC_TRY_RUN([
+  AC_LANG([C++])
+  AC_RUN_IFELSE([AC_LANG_SOURCE([[
     #define HAVE_SIGSEGV_SKIP_INSTRUCTION 1
     #define CONFIGURE_TEST_SIGSEGV_RECOVERY
     #include "../CrossPlatform/vm_alloc.cpp"
     #include "../CrossPlatform/sigsegv.cpp"
-  ], ac_cv_have_skip_instruction=yes, ac_cv_have_skip_instruction=no,
-  dnl When cross-compiling, do not assume anything.
-  ac_cv_have_skip_instruction=no
-  )
+  ]])],[ac_cv_have_skip_instruction=yes],[ac_cv_have_skip_instruction=no],[dnl When cross-compiling])
   AC_LANG_RESTORE
   ]
 )
+case "$target_cpu" in
+  arm* | aarch64* )
+    ac_cv_have_skip_instruction=yes
+    ;;
+esac
+
 AC_TRANSLATE_DEFINE(HAVE_SIGSEGV_SKIP_INSTRUCTION, "$ac_cv_have_skip_instruction",
   [Define if we can ignore the fault (instruction skipping in SIGSEGV handler).])
 
@@ -287,13 +287,11 @@ if [[ "x$HAVE_GCC30" = "xyes" ]]; then
   CFLAGS="$CFLAGS -fno-strict-aliasing"
   AC_CACHE_CHECK([whether the compiler supports -fno-strict-aliasing],
     ac_cv_gcc_no_strict_aliasing, [
-    AC_TRY_COMPILE([],[],
-      [ac_cv_gcc_no_strict_aliasing=yes],
-      [ac_cv_gcc_no_strict_aliasing=no])
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],[ac_cv_gcc_no_strict_aliasing=yes],[ac_cv_gcc_no_strict_aliasing=no])
   ])
   CFLAGS="$SAVED_CFLAGS"
   if test "x$ac_cv_gcc_no_strict_aliasing" = xyes; then
-       AC_SUBST(SLIRP_CFLAGS, "-fno-strict-aliasing")
+       AC_SUBST(SLIRP_CFLAGS, "-fno-strict-aliasing -std=gnu89")
   fi
 fi
 
@@ -332,7 +330,7 @@ if [[ "x$have_bincue" = "xyes" ]]; then
 fi
 
 dnl Enable JIT compiler, if possible.
-if [[ "x$WANT_JIT" = "xyes" -a "x$CAN_JIT" ]]; then
+if [[ "x$WANT_JIT" = "xyes" -a "x$CAN_JIT" = "xyes" ]]; then
   JITSRCS="$JITSRCS ../uae_cpu/compiler/compemu_support.cpp ../uae_cpu/compiler/compemu_fpp.cpp compstbl.o cpustbl_nf.o"
   DEFINES="$DEFINES -DUSE_JIT -DUSE_JIT_FPU"
   
@@ -374,8 +372,8 @@ dnl may be examined by the commands in the second argument.
 dnl
 AC_DEFUN([gcc_AC_EXAMINE_OBJECT],
 [AC_LANG_SAVE
-AC_LANG_C
-dnl Next bit cribbed from AC_TRY_COMPILE.
+AC_LANG([C])
+dnl Next bit cribbed from AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],[],[]).
 cat > conftest.$ac_ext <<EOF
 [#line __oline__ "configure"
 #include "confdefs.h"

@@ -23,6 +23,19 @@
 
 #include <functional>
 
+template <class Arg, class Result>
+struct nv_unary_function {
+	typedef Arg argument_type;
+	typedef Result result_type;
+};
+
+template <class Arg1, class Arg2, class Result>
+struct nv_binary_function {
+	typedef Arg1 first_argument_type;
+	typedef Arg2 second_argument_type;
+	typedef Result result_type;
+};
+
 #ifdef __MINGW32__
 #include "vm_alloc.h"
 #endif
@@ -51,7 +64,7 @@
 
 #if HAVE_FAST_NV_MEM_FUN
 
-#ifdef __MINGW32__
+#if defined(__MINGW32__) && !defined(__aarch64__) && !defined(_M_ARM64)
 #define PF_CONVENTION __thiscall
 #else
 // TODO set a calling convention on other platforms/compilers where the default cc does not pass obj as first param
@@ -70,7 +83,7 @@ inline PF nv_mem_fun_of(PMF pmf) {
 }
 
 template< class R, class T >
-class nv_mem_fun_t : public std::unary_function<T, R> {
+class nv_mem_fun_t : public nv_unary_function<T, R> {
 	typedef R (T::*pmf_t)();
 	typedef R (* PF_CONVENTION pf_t)(T *);
 	pf_t pf;
@@ -78,10 +91,11 @@ public:
 	nv_mem_fun_t(pmf_t pmf) : pf(nv_mem_fun_of<pmf_t, pf_t>(pmf)) {}
 	R operator()(T *p) const { return (*pf)(p); }
 	pf_t ptr() const { return pf; }
+	pf_t default_call_conv_ptr() const { return pf; }
 };
 
 template< class R, class T >
-class const_nv_mem_fun_t : public std::unary_function<T, R> {
+class const_nv_mem_fun_t : public nv_unary_function<T, R> {
 	typedef R (T::*pmf_t)();
 	typedef R (* PF_CONVENTION pf_t)(T *);
 	pf_t const pf;
@@ -89,25 +103,26 @@ public:
 	const_nv_mem_fun_t(pmf_t const pmf) : pf(nv_mem_fun_of<pmf_t, pf_t>(pmf)) {}
 	R operator()(const T *p) const { return (*pf)(p); }
 	pf_t ptr() const { return pf; }
+	pf_t default_call_conv_ptr() const { return pf; }
 };
 
 template< class R, class T, class A >
-class nv_mem_fun1_t : public std::binary_function<T, A, R> {
+class nv_mem_fun1_t : public nv_binary_function<T, A, R> {
 	typedef R (T::*pmf_t)(A);
 	typedef R (* PF_CONVENTION pf_t)(T *, A x);
-#ifdef __MINGW32__
+#if defined(__MINGW32__) && !defined(__aarch64__) && !defined(_M_ARM64)
 	typedef R (* default_call_conv_pf_t)(T *, A x);
 #endif
 	pf_t pf;
 public:
 	nv_mem_fun1_t(pmf_t pmf) : pf(nv_mem_fun_of<pmf_t, pf_t>(pmf)) {
-	#ifdef __MINGW32__
+	#if defined(__MINGW32__) && !defined(__aarch64__) && !defined(_M_ARM64)
 		init_func();				
 	#endif
 	}
 	R operator()(T *p, A x) const { return (*pf)(p, x); }
 	
-	#ifdef __MINGW32__
+	#if defined(__MINGW32__) && !defined(__aarch64__) && !defined(_M_ARM64)
 	
 	#define NVMEMFUN_THUNK_DEBUG 0
 	
@@ -216,6 +231,7 @@ public:
 	#else 
 
 	pf_t ptr() const { return pf; }
+	pf_t default_call_conv_ptr() const { return pf; }
 
 	#endif
 	
@@ -223,7 +239,7 @@ public:
 };
 
 template< class R, class T, class A >
-class const_nv_mem_fun1_t : public std::binary_function<T, A, R> {
+class const_nv_mem_fun1_t : public nv_binary_function<T, A, R> {
 	typedef R (T::*pmf_t)(A);
 	typedef R (* PF_CONVENTION pf_t)(T *, A x);
 	pf_t const pf;
@@ -231,12 +247,13 @@ public:
 	const_nv_mem_fun1_t(pmf_t const pmf) : pf(nv_mem_fun_of<pmf_t, pf_t>(pmf)) {}
 	R operator()(const T *p, A x) const { return (*pf)(p, x); }
 	pf_t ptr() const { return pf; }
+	pf_t default_call_conv_ptr() const { return pf; }
 };
 
 #else
 
 template< class R, class T >
-class nv_mem_fun_t : public std::unary_function<T, R> {
+class nv_mem_fun_t : public nv_unary_function<T, R> {
 	typedef R (T::*pmf_t)();
 	pmf_t pf;
 public:
@@ -246,7 +263,7 @@ public:
 };
 
 template< class R, class T >
-class const_nv_mem_fun_t : public std::unary_function<T, R> {
+class const_nv_mem_fun_t : public nv_unary_function<T, R> {
 	typedef R (T::*pmf_t)() const;
 	pmf_t pf;
 public:
@@ -256,7 +273,7 @@ public:
 };
 
 template< class R, class T, class A >
-class nv_mem_fun1_t : public std::binary_function<T, A, R> {
+class nv_mem_fun1_t : public nv_binary_function<T, A, R> {
 	typedef R (T::*pmf_t)(A);
 	pmf_t pf;
 public:
@@ -266,7 +283,7 @@ public:
 };
 
 template< class R, class T, class A >
-class const_nv_mem_fun1_t : public std::binary_function<T, A, R> {
+class const_nv_mem_fun1_t : public nv_binary_function<T, A, R> {
 	typedef R (T::*pmf_t)(A) const;
 	pmf_t pf;
 public:

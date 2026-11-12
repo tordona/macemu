@@ -48,6 +48,7 @@
 #include <SDL_thread.h>
 #include <errno.h>
 #include <vector>
+#include <new>
 #include <string>
 #include <math.h>
 

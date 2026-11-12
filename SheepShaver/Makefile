@@ -49,7 +49,7 @@ $(SRCARCHIVE): $(SRCS) $(DOCS)
 # Links to Basilisk II sources
 #
 links:
-	(cd src/Windows; if [ ! -e m4 ]; then ln -s ../../../BasiliskII/src/Unix/m4; fi)
+	(cd src/Windows; if [ ! -e m4 ]; then ln -s ../../../BasiliskII/src/Unix/m4 2>/dev/null || cp -fpR ../../../BasiliskII/src/Unix/m4 .; fi)
 	@list='adb.cpp audio.cpp cdrom.cpp disk.cpp extfs.cpp pict.c \
 	       prefs.cpp scsi.cpp sony.cpp timer.cpp xpram.cpp \
 	       bincue.cpp include/bincue.h \
@@ -102,6 +102,9 @@ links:
 	    SUB=`echo $$o | sed 's;[^/]*/;../;g' | sed 's;[^/]*$$;;'` ;\
 	    cur_link=src/$$o ;\
 	    if [ -e "$$cur_link" ]; then rm -rf "$$cur_link"; fi ;\
-	    ln -sf "$$PREFIX$$SUB$(B2_TOPDIR)/src/$$i" $$cur_link; \
+	    ln -sf "$$PREFIX$$SUB$(B2_TOPDIR)/src/$$i" $$cur_link 2>/dev/null; \
+	    if [ ! -L "$$cur_link" ]; then \
+	      cp -fpR "$(B2_TOPDIR)/src/$$i" "$$cur_link"; \
+	    fi; \
 	  fi; \
 	done;

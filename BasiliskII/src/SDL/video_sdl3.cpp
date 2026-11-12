@@ -47,6 +47,7 @@
 #include <errno.h>
 #include <vector>
 #include <string>
+#include <new>
 #include <math.h>
 
 #ifdef SDL_PLATFORM_MACOS
